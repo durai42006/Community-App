@@ -1,16 +1,16 @@
 import React, { useContext, useState } from "react";
 import { UserContext } from "../../context/userContext";
-import "../css/Dashboard.css"; // ✅ Import the CSS file
+import WeeklyContest from "../pages/WeeklyContest"; // ✅ Import Weekly Contest
+import "../css/Dashboard.css"; // ✅ Import CSS file
 
 function Dashboard() {
   const { user } = useContext(UserContext);
   console.log("User Context Data:", user);
-if (user) {
-  console.log("User Name:", user.name);
-}
-else{
-  console.log('user details are null')
-}
+  if (user) {
+    console.log("User Name:", user.name);
+  } else {
+    console.log("User details are null");
+  }
 
   // Aptitude topics with subtopics
   const aptitudeTopics = [
@@ -42,6 +42,7 @@ else{
 
   // State to track expanded topics
   const [expandedTopic, setExpandedTopic] = useState(null);
+  const [showContest, setShowContest] = useState(false); // ✅ New state for contest page
 
   const toggleSubtopics = (index) => {
     setExpandedTopic(expandedTopic === index ? null : index);
@@ -52,18 +53,27 @@ else{
       <h1 className="dashboard-title">Welcome to AptEx</h1>
       {!!user ? <h2 className="dashboard-username">Hello, {user.name}!</h2> : <p className="dashboard-loading">Loading user...</p>}
 
-      <div className="topics-container">
-        {aptitudeTopics.map((topic, index) => (
-          <div key={index} className="topic-card" onClick={() => toggleSubtopics(index)}>
-            <h3>{topic.name}</h3>
-            <div className={`subtopics ${expandedTopic === index ? "show" : ""}`}>
-              {topic.subtopics.map((subtopic, subIndex) => (
-                <p key={subIndex} className="subtopic">{subtopic}</p>
-              ))}
+      {/* Toggle Button for Weekly Contest */}
+      <button className="contest-button" onClick={() => setShowContest(!showContest)}>
+        {showContest ? "Back to Dashboard" : "Go to Weekly Contest"}
+      </button>
+
+      {showContest ? (
+        <WeeklyContest /> // ✅ Show Weekly Contest when button is clicked
+      ) : (
+        <div className="topics-container">
+          {aptitudeTopics.map((topic, index) => (
+            <div key={index} className="topic-card" onClick={() => toggleSubtopics(index)}>
+              <h3>{topic.name}</h3>
+              <div className={`subtopics ${expandedTopic === index ? "show" : ""}`}>
+                {topic.subtopics.map((subtopic, subIndex) => (
+                  <p key={subIndex} className="subtopic">{subtopic}</p>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

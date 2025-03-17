@@ -92,3 +92,17 @@
 .topic-card:hover h3 {
   color: white;
 }
+.contest-button {
+  background-color: #007bff;
+  color: white;
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+
+.contest-button:hover {
+  background-color: #0056b3;
+}
