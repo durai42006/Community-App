@@ -1,10 +1,15 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { FaTrophy, FaComment, FaUser, FaReply, FaChevronDown, FaChevronUp } from "react-icons/fa";
-import { UserContext } from "../../context/userContext"; // Import user context
+import { UserContext } from "../../context/userContext";
+import { SocketContext } from "../../context/socketContext";
+import axios from "axios";
 import "../css/WeeklyContest.css";
 
 const WeeklyContest = () => {
-  const { user } = useContext(UserContext); // Get logged-in user
+  const { user } = useContext(UserContext);
+  const socket = useContext(SocketContext);
+  const [comments, setComments] = useState({});
+  const [expandedComments, setExpandedComments] = useState({});
 
   const questions = [
     { id: 1, question: "What is the LCM of 12 and 18?" },
@@ -12,48 +17,43 @@ const WeeklyContest = () => {
     { id: 3, question: "A train travels 240 km in 4 hours. Find its speed." },
   ];
 
-  const [comments, setComments] = useState({});
-  const [expandedComments, setExpandedComments] = useState({});
+  useEffect(() => {
+    questions.forEach((q) => fetchComments(q.id));
 
-  // Function to add a comment or reply
-  const handleCommentSubmit = (questionId, comment, parentId = null) => {
-    if (!comment.trim()) return;
-
-    const newComment = {
-      id: Date.now(), // Unique ID for each comment
-      username: user?.name || "Anonymous",
-      text: comment,
-      replies: [],
-    };
-
-    setComments((prev) => {
-      const updatedComments = { ...prev };
-      if (!updatedComments[questionId]) updatedComments[questionId] = [];
-
-      if (parentId === null) {
-        // Insert new comment at the beginning (latest first)
-        updatedComments[questionId] = [newComment, ...updatedComments[questionId]];
-      } else {
-        const addReply = (commentsArray) => {
-          return commentsArray.map((c) => {
-            if (c.id === parentId) {
-              return { ...c, replies: [newComment, ...c.replies] }; // Insert reply at the beginning
-            }
-            return { ...c, replies: addReply(c.replies) };
-          });
-        };
-        updatedComments[questionId] = addReply(updatedComments[questionId]);
-      }
-      return updatedComments;
+    socket.on("updateComments", ({ questionId, comment }) => {
+      setComments((prev) => ({
+        ...prev,
+        [questionId]: [comment, ...(prev[questionId] || [])],
+      }));
     });
+
+    return () => socket.off("updateComments");
+  }, [socket]);
+
+  const fetchComments = async (questionId) => {
+    try {
+      const res = await axios.get(`http://localhost:8000/api/comments/${questionId}`);
+      setComments((prev) => ({ ...prev, [questionId]: res.data }));
+    } catch (error) {
+      console.error("Failed to fetch comments:", error);
+    }
   };
 
-  // Toggle comment visibility
-  const toggleComments = (questionId) => {
-    setExpandedComments((prev) => ({
-      ...prev,
-      [questionId]: !prev[questionId],
-    }));
+  const handleCommentSubmit = async (questionId, commentText) => {
+    if (!commentText.trim()) return;
+
+    const newComment = {
+      questionId,
+      username: user?.name || "Anonymous",
+      text: commentText,
+    };
+
+    try {
+      const res = await axios.post("http://localhost:8000/api/comments/add", newComment);
+      socket.emit("newComment", { questionId, comment: res.data }); // ✅ Broadcast to all users
+    } catch (error) {
+      console.error("Failed to add comment:", error);
+    }
   };
 
   return (
@@ -65,20 +65,35 @@ const WeeklyContest = () => {
         <div key={q.id} className="question-card">
           <h3>{q.question}</h3>
           <div className="comment-section">
-            <h4><FaComment /> Comments</h4>
-            <ul>
+            <h4>
+              <FaComment /> Comments
+            </h4>
+            <div className="comment-list scrollable-comments">
               {comments[q.id] &&
                 comments[q.id]
-                  .slice(0, expandedComments[q.id] ? comments[q.id].length : 3) // Limit to 3 comments initially
-                  .map((c) => (
-                    <CommentItem key={c.id} comment={c} questionId={q.id} onReply={handleCommentSubmit} />
-                  ))}
-            </ul>
+                  .slice(0, expandedComments[q.id] ? comments[q.id].length : 3)
+                  .map((c) => <CommentItem key={c._id} comment={c} />)}
+            </div>
 
-            {/* Toggle Button for Show More / Less */}
             {comments[q.id] && comments[q.id].length > 3 && (
-              <button className="toggle-btn" onClick={() => toggleComments(q.id)}>
-                {expandedComments[q.id] ? <>Show Less <FaChevronUp /></> : <>Show More <FaChevronDown /></>}
+              <button
+                className="toggle-btn"
+                onClick={() =>
+                  setExpandedComments((prev) => ({
+                    ...prev,
+                    [q.id]: !prev[q.id],
+                  }))
+                }
+              >
+                {expandedComments[q.id] ? (
+                  <>
+                    Show Less <FaChevronUp />
+                  </>
+                ) : (
+                  <>
+                    Show More <FaChevronDown />
+                  </>
+                )}
               </button>
             )}
 
@@ -90,44 +105,14 @@ const WeeklyContest = () => {
   );
 };
 
-// Component for each comment (supports replies)
-const CommentItem = ({ comment, questionId, onReply }) => {
-  const [replyText, setReplyText] = useState("");
-  const [showReplyBox, setShowReplyBox] = useState(false);
-
+const CommentItem = ({ comment }) => {
   return (
-    <li className="comment">
+    <div className="comment">
       <FaUser className="user-icon" /> <strong>{comment.username}:</strong> {comment.text}
-      <button className="reply-button" onClick={() => setShowReplyBox(!showReplyBox)}>
-        <FaReply /> Reply
-      </button>
-
-      {showReplyBox && (
-        <div className="reply-box">
-          <input
-            type="text"
-            placeholder="Write a reply..."
-            value={replyText}
-            onChange={(e) => setReplyText(e.target.value)}
-          />
-          <button onClick={() => { onReply(questionId, replyText, comment.id); setReplyText(""); setShowReplyBox(false); }}>
-            Post
-          </button>
-        </div>
-      )}
-
-      {comment.replies.length > 0 && (
-        <ul className="nested-comments">
-          {comment.replies.map((reply) => (
-            <CommentItem key={reply.id} comment={reply} questionId={questionId} onReply={onReply} />
-          ))}
-        </ul>
-      )}
-    </li>
+    </div>
   );
 };
 
-// Input field for new comments
 const CommentInput = ({ questionId, onCommentSubmit }) => {
   const [comment, setComment] = useState("");
 
@@ -139,7 +124,12 @@ const CommentInput = ({ questionId, onCommentSubmit }) => {
         value={comment}
         onChange={(e) => setComment(e.target.value)}
       />
-      <button onClick={() => { onCommentSubmit(questionId, comment); setComment(""); }}>
+      <button
+        onClick={() => {
+          onCommentSubmit(questionId, comment);
+          setComment("");
+        }}
+      >
         Post
       </button>
     </div>
