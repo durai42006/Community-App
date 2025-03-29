@@ -1,33 +1,63 @@
-import axios from "axios";
-import { createContext, useEffect, useState } from "react";
+// import { createContext, useEffect, useState } from "react";
+// import { supabase } from "../supabaseClient"; // Ensure correct import
 
-export const UserContext = createContext({});
+// export const UserContext = createContext(null); // Set default value as null
 
-export function UserContextProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // ✅ Added loading state
+// export const UserProvider = ({ children }) => {
+//   const [user, setUser] = useState(null);
+//   const [loading, setLoading] = useState(true); // Track loading state
 
-  useEffect(() => {
-    const fetchUser = async () => {
-        try {
-            const { data } = await axios.get("http://localhost:8000/profile", { withCredentials: true });
-            console.log("✅ Fetched User from /profile:", data); 
-            setUser(data);
-        } catch (error) {
-            console.error("❌ Profile fetch error:", error);
-            setUser(null);
-        } finally {
-            setLoading(false);
-        }
-    };
+//   useEffect(() => {
+//     const fetchUser = async () => {
+//       setLoading(true);
+//       const { data, error } = await supabase.auth.getSession();
 
-    fetchUser();
-}, []);
+//       if (error) {
+//         console.error("❌ Profile fetch error:", error);
+//       } else if (data?.session) {
+//         setUser(data.session.user);
+//       }
+//       setLoading(false);
+//     };
 
+//     fetchUser();
 
-  return (
-    <UserContext.Provider value={{ user, setUser, loading }}>
-      {children}
-    </UserContext.Provider>
-  );
-}
+//     // ✅ Listen for authentication state changes
+//     const {
+//       data: { subscription },
+//     } = supabase.auth.onAuthStateChange((event, session) => {
+//       if (session) {
+//         setUser(session.user);
+//       } else {
+//         setUser(null);
+//       }
+//     });
+
+//     return () => subscription?.unsubscribe(); // Cleanup listener on unmount
+//   }, []);
+
+//   return (
+//     <UserContext.Provider value={{ user, setUser, loading }}>
+//       {children}
+//     </UserContext.Provider>
+//   );
+// };
+
+import { createContext, useState, useEffect } from "react";
+import { supabase } from "../supabaseClient";
+
+export const UserContext = createContext(null);
+
+export const UserProvider = ({ children }) => {
+    const [user, setUser] = useState(null);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            const { data, error } = await supabase.auth.getUser();
+            if (!error) setUser(data.user);
+        };
+        fetchUser();
+    }, []);
+
+    return <UserContext.Provider value={{ user, setUser }}>{children}</UserContext.Provider>;
+};

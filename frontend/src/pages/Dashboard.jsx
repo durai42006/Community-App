@@ -1,81 +1,82 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { UserContext } from "../../context/userContext";
-import WeeklyContest from "../pages/WeeklyContest"; // ✅ Import Weekly Contest
-import "../css/Dashboard.css"; // ✅ Import CSS file
+import { supabase } from "../../supabaseClient"; // ✅ Import Supabase client
+import WeeklyContest from "../pages/WeeklyContest";
+import "../css/Dashboard.css";
 
 function Dashboard() {
-  const { user } = useContext(UserContext);
-  console.log("User Context Data:", user);
-  if (user) {
-    console.log("User Name:", user.name);
-  } else {
-    console.log("User details are null");
-  }
+    const { user, setUser } = useContext(UserContext);
+    const [expandedTopic, setExpandedTopic] = useState(null);
+    const [showContest, setShowContest] = useState(false);
+    const [userName, setUserName] = useState(""); // ✅ New state to store username
 
-  // Aptitude topics with subtopics
-  const aptitudeTopics = [
-    { 
-      name: "Quantitative Aptitude", 
-      subtopics: ["LCM & HCF", "Percentages", "Profit & Loss", "Simple & Compound Interest", "Time & Work", "Time, Speed & Distance"] 
-    },
-    { 
-      name: "Logical Reasoning", 
-      subtopics: ["Blood Relations", "Coding-Decoding", "Number Series", "Direction Sense", "Syllogisms", "Puzzles"] 
-    },
-    { 
-      name: "Verbal Ability", 
-      subtopics: ["Reading Comprehension", "Sentence Correction", "Synonyms & Antonyms", "Para Jumbles", "Fill in the Blanks"] 
-    },
-    { 
-      name: "Data Interpretation", 
-      subtopics: ["Bar Graphs", "Pie Charts", "Line Graphs", "Tables", "Data Sufficiency"] 
-    },
-    { 
-      name: "Probability & Statistics", 
-      subtopics: ["Mean, Median, Mode", "Permutations & Combinations", "Probability", "Standard Deviation"] 
-    },
-    { 
-      name: "Algebra & Geometry", 
-      subtopics: ["Quadratic Equations", "Polynomials", "Triangles & Circles", "Coordinate Geometry", "Mensuration"] 
-    },
-  ];
+    useEffect(() => {
+        const fetchUser = async () => {
+            const { data: { user }, error } = await supabase.auth.getUser();
+            
+            if (error) {
+                console.error("Error fetching user:", error);
+            } else if (user) {
+                setUser(user);
 
-  // State to track expanded topics
-  const [expandedTopic, setExpandedTopic] = useState(null);
-  const [showContest, setShowContest] = useState(false); // ✅ New state for contest page
+                // ✅ Fetch username from users table
+                const { data: userData, error: userError } = await supabase
+                    .from("users")
+                    .select("name")
+                    .eq("id", user.id)
+                    .single(); 
 
-  const toggleSubtopics = (index) => {
-    setExpandedTopic(expandedTopic === index ? null : index);
-  };
+                if (userError) {
+                    console.error("Error fetching username:", userError);
+                } else {
+                    setUserName(userData.name); // ✅ Set username
+                }
+            }
+        };
+    
+        fetchUser();
+    }, [setUser]);
 
-  return (
-    <div className="dashboard-container">
-      <h1 className="dashboard-title">Welcome to AptEx</h1>
-      {!!user ? <h2 className="dashboard-username">Hello, {user.name}!</h2> : <p className="dashboard-loading">Loading user...</p>}
+    const aptitudeTopics = [
+        { name: "Quantitative Aptitude", subtopics: ["LCM & HCF", "Percentages", "Profit & Loss", "Simple & Compound Interest", "Time & Work", "Time, Speed & Distance"] },
+        { name: "Logical Reasoning", subtopics: ["Blood Relations", "Coding-Decoding", "Number Series", "Direction Sense", "Syllogisms", "Puzzles"] },
+        { name: "Verbal Ability", subtopics: ["Reading Comprehension", "Sentence Correction", "Synonyms & Antonyms", "Para Jumbles", "Fill in the Blanks"] },
+        { name: "Data Interpretation", subtopics: ["Bar Graphs", "Pie Charts", "Line Graphs", "Tables", "Data Sufficiency"] },
+        { name: "Probability & Statistics", subtopics: ["Mean, Median, Mode", "Permutations & Combinations", "Probability", "Standard Deviation"] },
+        { name: "Algebra & Geometry", subtopics: ["Quadratic Equations", "Polynomials", "Triangles & Circles", "Coordinate Geometry", "Mensuration"] },
+    ];
 
-      {/* Toggle Button for Weekly Contest */}
-      <button className="contest-button" onClick={() => setShowContest(!showContest)}>
-        {showContest ? "Back to Dashboard" : "Go to Weekly Contest"}
-      </button>
+    const toggleSubtopics = (index) => {
+        setExpandedTopic(expandedTopic === index ? null : index);
+    };
 
-      {showContest ? (
-        <WeeklyContest /> // ✅ Show Weekly Contest when button is clicked
-      ) : (
-        <div className="topics-container">
-          {aptitudeTopics.map((topic, index) => (
-            <div key={index} className="topic-card" onClick={() => toggleSubtopics(index)}>
-              <h3>{topic.name}</h3>
-              <div className={`subtopics ${expandedTopic === index ? "show" : ""}`}>
-                {topic.subtopics.map((subtopic, subIndex) => (
-                  <p key={subIndex} className="subtopic">{subtopic}</p>
-                ))}
-              </div>
-            </div>
-          ))}
+    return (
+        <div className="dashboard-container">
+            <h1 className="dashboard-title">Welcome to AptEx</h1>
+            {!!user ? <h2 className="dashboard-username">Hello, {userName || "Loading..."}</h2> : <p className="dashboard-loading">Loading user...</p>}
+
+            <button className="contest-button" onClick={() => setShowContest(!showContest)}>
+                {showContest ? "Back to Dashboard" : "Go to Weekly Contest"}
+            </button>
+
+            {showContest ? (
+                <WeeklyContest />
+            ) : (
+                <div className="topics-container">
+                    {aptitudeTopics.map((topic, index) => (
+                        <div key={index} className="topic-card" onClick={() => toggleSubtopics(index)}>
+                            <h3>{topic.name}</h3>
+                            <div className={`subtopics ${expandedTopic === index ? "show" : ""}`}>
+                                {topic.subtopics.map((subtopic, subIndex) => (
+                                    <p key={subIndex} className="subtopic">{subtopic}</p>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 }
 
 export default Dashboard;

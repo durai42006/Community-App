@@ -1,21 +1,67 @@
 import { Link } from "react-router-dom";
-import { useContext } from "react";
-import { UserContext } from "../../context/userContext";
-import "../css/Navbar.css"; // ✅ Import CSS file
-import defaultAvatar from "../assets/user.png"; // ✅ Default avatar image
-import userAvatar from "../assets/user.png"; // ✅ User avatar image
+import { useEffect, useState, useContext } from "react";
+import { createClient } from "@supabase/supabase-js";
+import "../css/Navbar.css"; // Import CSS file
+import defaultAvatar from "../assets/user.png"; // Default avatar image
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { UserContext } from "../../context/userContext.jsx"; // Import UserContext
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 function Navbar() {
-  const { user, setUser } = useContext(UserContext);
+  const [user, setUser] = useState(null);
+  const [userName, setUserName] = useState(""); // Store username from 'users' table
   const navigate = useNavigate();
+  const { user: contextUser, setUser: setContextUser } = useContext(UserContext);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session) {
+        setUser(session.user);
+
+        // Fetch username from 'users' table using 'id'
+        const { data: userData, error } = await supabase
+          .from("users")
+          .select("username")
+          .eq("id", session.user.id) // ✅ Use 'id' instead of 'user_id'
+          .single();
+
+        if (userData) {
+          setUserName(userData.username);
+          setContextUser(userData); // Update UserContext
+        }
+        if (error) console.error("Error fetching user from 'users' table:", error);
+      }
+    };
+
+    fetchUser();
+
+    // Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+      if (!session) {
+        setUserName("");
+        setContextUser(null);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   const handleLogout = async () => {
     try {
-      await axios.post("http://localhost:8000/api/auth/logout", {}, { withCredentials: true });
-      setUser(null); // Clear user data
-      navigate("/login"); // Redirect to login page
+      await supabase.auth.signOut();
+      setUser(null);
+      setUserName("");
+      setContextUser(null);
+      navigate("/login");
     } catch (error) {
       console.error("Logout failed:", error);
     }
@@ -29,7 +75,7 @@ function Navbar() {
 
       <div className="navbar-right">
         <Link to="/" className="navbar-link">Home</Link>
-        
+
         {!user ? (
           <>
             <Link to="/login" className="navbar-link">Login</Link>
@@ -39,9 +85,9 @@ function Navbar() {
         ) : (
           <>
             <div className="user-info">
-            <Link to="/dashboard" className="navbar-link">Dashboard</Link>
-              <img src={userAvatar} alt="User" className="user-avatar" />
-              <span className="username">{user.name}</span>
+              <Link to="/dashboard" className="navbar-link">Dashboard</Link>
+              <img src={defaultAvatar} alt="User" className="user-avatar" />
+              <span className="username">{userName || user.email}</span> {/* ✅ Display username */}
             </div>
             <button className="logout-btn" onClick={handleLogout}>Logout</button>
           </>

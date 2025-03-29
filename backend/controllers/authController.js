@@ -1,134 +1,88 @@
-import User from '../models/user.js'
-import { hashPassword,comparePassword } from '../helpers/auth.js';
-import jwt from 'jsonwebtoken'
+import { supabase } from "../config/supabaseClient.js";
 
 export const test = (req, res) => {
-    res.json("test is working");
+    res.json("Test is working with Supabase");
 };
 
-
-// Regisering process
+// Register User
 export const registerUser = async (req, res) => {
     try {
-        const {name,email,password} = req.body
+        const { name, email, password } = req.body;
 
-        // check name
-        if(!name){
-             return res.json({
-                error:'Name is required'
-            })
-        }  
+        if (!name) return res.json({ error: "Name is required" });
+        if (!password || password.length < 6)
+            return res.json({ error: "Password must be at least 6 characters" });
 
-        // check password
-        if(!password || password.length<6){
-            return res.json({
-               error:'Password is required and length should be atleast 6 '
-           })
-       }  
+        // ✅ Supabase signup
+        const { data: signUpData, error } = await supabase.auth.signUp({
+            email,
+            password
+        });
 
-       // check email
-       const exist= await User.findOne({email})
+        if (error) return res.json({ error: error.message });
 
-       if(exist){
-        return res.json({
-            error:'Email is already exist'
-        })
-       }
+        const userId = signUpData?.user?.id; // ✅ Get the user ID
+        if (!userId) return res.json({ error: "Signup failed, no user ID returned" });
 
-       const hashedPassword= await hashPassword(password)
+        // ✅ Store user in the manually created `users` table
+        const { error: dbError } = await supabase
+            .from("users")
+            .insert([{ id: userId, name, email }]);
 
-    //    create new user in Database
-    const newUser = await User.create({
-        name,
-        email,
-        password:hashedPassword,
-    })
+        if (dbError) return res.json({ error: dbError.message });
 
-    return res.json(newUser)
-
-
+        res.json({ message: "User registered successfully", user: signUpData.user });
     } catch (error) {
-        console.log(error)
+        console.error("Registration Error:", error);
+        res.status(500).json({ error: "Internal server error" });
     }
 };
 
 
-// Login process
+// Login User
 export const loginUser = async (req, res) => {
     try {
-        console.log("🔹 Login attempt received");
         const { email, password } = req.body;
 
-        const user = await User.findOne({ email });
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
 
-        if (!user) {
-            return res.json({ error: "No user found" });
-        }
+        if (error) return res.json({ error: "Invalid email or password" });
 
-        const match = await comparePassword(password, user.password);
-        if (!match) {
-            return res.json({ error: "Password does not match" });
-        }
-
-        // Generate JWT Token
-        jwt.sign(
-            { email: user.email, id: user._id, name: user.name },
-            process.env.JWT_SECRET,
-            { expiresIn: "7d" },
-            (err, token) => {
-                if (err) {
-                    console.error("JWT Sign Error:", err);
-                    return res.status(500).json({ error: "Internal server error" });
-                }
-
-                // Set token in cookie
-                res.cookie("token", token, {
-                    httpOnly: true, // Secure cookies
-                    secure: false, // Set to true in production
-                    sameSite: "None", // Allow cross-origin requests
-                });
-                
-
-                console.log("✅ Login successful, sending response...");
-                return res.json({
-                    message: "Login successful",
-                    user: { id: user._id, name: user.name, email: user.email },
-                    token, // Send token as well
-                });
-            }
-        );
+        res.json({
+            message: "Login successful",
+            user: data.user,
+            token: data.session.access_token, // Send Supabase session token
+        });
     } catch (error) {
-        console.error("❌ Login Error:", error);
-        res.status(500).json({ error: "Something went wrong" });
+        console.error("Login Error:", error);
+        res.status(500).json({ error: "Internal server error" });
     }
 };
 
+// Get Profile
+export const getProfile = async (req, res) => {
+    try {
+        const { user } = await supabase.auth.getUser();
+        if (!user) return res.status(401).json({ error: "User not found" });
 
-export const getProfile = (req, res) => {
-    console.log("🟢 Received /profile request");
-
-    const { token } = req.cookies;
-    if (!token) {
-        console.log("❌ No token found");
-        return res.json(null);
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET, {}, (err, user) => {
-        if (err) {
-            console.error("❌ JWT verification failed:", err);
-            return res.status(401).json({ error: "Invalid token" });
-        }
-        
-        console.log("✅ Verified user:", user);
         res.json(user);
-    });
+    } catch (error) {
+        console.error("Profile Fetch Error:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
 };
 
-
-
-export const logoutUser = (req, res) => {
-    res.cookie("token", "", { expires: new Date(0), httpOnly: true });
-    res.json({ message: "Logout successful" });
+// Logout User
+export const logoutUser = async (req, res) => {
+    try {
+        const { error } = await supabase.auth.signOut();
+        if (error) return res.json({ error: error.message });
+        res.json({ message: "Logout successful" });
+    } catch (error) {
+        console.error("Logout Error:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
 };
-
-
