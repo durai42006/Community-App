@@ -18,13 +18,13 @@ function App() {
   return (
     <UserProvider> 
 
-        <Navbar />
+        {/* <Navbar /> */}
         <Toaster position='bottom-right' toastOptions={{ duration: 2000 }} />
         <Routes>
           <Route path="/" element={<Home />} />
-          {/* <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/dashboard" element={<Dashboard />} /> */}
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/community" element={<CommunityChat />} />
         </Routes>
     </UserProvider>
