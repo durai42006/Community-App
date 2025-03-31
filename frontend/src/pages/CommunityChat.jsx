@@ -61,11 +61,21 @@ const CommunityChat = () => {
         setNewMessage("");
         setReplyTo(null);
     };
-    
 
     return (
-        <Box sx={{ maxWidth: 600, mx: "auto", mt: 3, p: 2, boxShadow: 3, borderRadius: 2, bgcolor: "#f5f5f5" }}>
-            <List sx={{ maxHeight: 400, overflowY: "auto", bgcolor: "white", p: 1, borderRadius: 2 }}>
+        <Box sx={{
+            height: "100vh",
+            display: "flex",
+            flexDirection: "column",
+            bgcolor: "#f5f5f5",
+        
+        }}>
+            <List sx={{
+                flex: 1,
+                overflowY: "auto",
+                p: 2,
+                bgcolor: "white",
+            }}>
                 {messages.map((msg) => (
                     <ChatMessage key={msg.id || msg.created_at} msg={msg} currentUserEmail={user.email} onReply={setReplyTo} />
                 ))}
@@ -75,7 +85,13 @@ const CommunityChat = () => {
                     Replying to: {replyTo.content.length > 30 ? replyTo.content.substring(0, 30) + "..." : replyTo.content}
                 </Box>
             )}
-            <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
+            <Box sx={{
+                display: "flex",
+                gap: 1,
+                p: 2,
+                bgcolor: "white",
+                boxShadow: "0 -2px 5px rgba(0,0,0,0.1)"
+            }}>
                 <TextField
                     fullWidth
                     variant="outlined"

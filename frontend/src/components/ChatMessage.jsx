@@ -18,7 +18,7 @@ const ChatMessage = ({ msg, currentUserEmail, onReply }) => {
             display: "flex",
             flexDirection: "column",
             alignItems: isOwnMessage ? "flex-end" : "flex-start",
-            maxWidth: "80%",
+            maxWidth: "97%",
             mb: 1
         }}>
             <Typography variant="caption" color="gray">

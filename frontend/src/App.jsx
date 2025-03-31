@@ -18,7 +18,7 @@ function App() {
   return (
     <UserProvider> 
 
-        {/* <Navbar /> */}
+        <Navbar />
         <Toaster position='bottom-right' toastOptions={{ duration: 2000 }} />
         <Routes>
           <Route path="/" element={<Home />} />
