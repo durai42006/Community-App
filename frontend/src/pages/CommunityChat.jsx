@@ -41,22 +41,22 @@ const CommunityChat = () => {
 
     const sendMessage = async () => {
         if (!newMessage.trim()) return;
-    
+
         const messageData = {
             sender_id: user.id,
             sender_email: user.email,
             content: newMessage,
             created_at: new Date().toISOString(),
-            reply_to: replyTo ? JSON.stringify({ content: replyTo.content, sender: replyTo.sender_email }) : null,
+            reply_to: replyTo ? JSON.stringify({ content: replyTo.content || "", sender: replyTo.sender_email || "" }) : null,
         };
-    
+
         const { data, error } = await supabase.from("messages").insert([messageData]).select();
-    
+
         if (error) {
             console.error("Error sending message:", error.message);
             return;
         }
-    
+
         setMessages((prev) => [...prev, data[0]]);
         setNewMessage("");
         setReplyTo(null);
@@ -68,7 +68,6 @@ const CommunityChat = () => {
             display: "flex",
             flexDirection: "column",
             bgcolor: "#f5f5f5",
-        
         }}>
             <List sx={{
                 flex: 1,
@@ -82,7 +81,7 @@ const CommunityChat = () => {
             </List>
             {replyTo && (
                 <Box sx={{ bgcolor: "#e0e0e0", p: 1, borderRadius: 2, mt: 1 }}>
-                    Replying to: {replyTo.content.length > 30 ? replyTo.content.substring(0, 30) + "..." : replyTo.content}
+                    Replying to: {replyTo.content ? (replyTo.content.length > 30 ? replyTo.content.substring(0, 30) + "..." : replyTo.content) : ""}
                 </Box>
             )}
             <Box sx={{

@@ -47,30 +47,30 @@ app.use("/api/comments", commentRoutes);
 
 
 
-app.get("/messages", async (req, res) => {
-    const { data, error } = await supabase
-        .from("messages")
-        .select("id, content, created_at, user_id")
-        .order("created_at", { ascending: true });
+// app.get("/messages", async (req, res) => {
+//     const { data, error } = await supabase
+//         .from("messages")
+//         .select("id, content, created_at, user_id")
+//         .order("created_at", { ascending: true });
 
-    if (error) return res.status(400).json({ error: error.message });
+//     if (error) return res.status(400).json({ error: error.message });
 
-    res.json(data);
-});
+//     res.json(data);
+// });
 
-// 📌 API to send a message
-app.post("/messages", async (req, res) => {
-    const { user_id, content } = req.body;
+// // 📌 API to send a message
+// app.post("/messages", async (req, res) => {
+//     const { user_id, content } = req.body;
 
-    const { data, error } = await supabase
-        .from("messages")
-        .insert([{ user_id, content }])
-        .select();
+//     const { data, error } = await supabase
+//         .from("messages")
+//         .insert([{ user_id, content }])
+//         .select();
 
-    if (error) return res.status(400).json({ error: error.message });
+//     if (error) return res.status(400).json({ error: error.message });
 
-    res.status(201).json(data[0]);
-});
+//     res.status(201).json(data[0]);
+// });
 
 
 

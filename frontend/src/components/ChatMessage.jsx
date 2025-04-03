@@ -3,7 +3,7 @@ import { Reply, ContentCopy } from "@mui/icons-material";
 import dayjs from "dayjs";
 
 const truncateText = (text, maxLength = 30) => {
-    return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
+    return text && text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
 };
 
 const ChatMessage = ({ msg, currentUserEmail, onReply }) => {
@@ -12,6 +12,9 @@ const ChatMessage = ({ msg, currentUserEmail, onReply }) => {
     const copyToClipboard = () => {
         navigator.clipboard.writeText(msg.content);
     };
+
+    // Safely parse reply_to JSON
+    const replyData = msg.reply_to ? JSON.parse(msg.reply_to) : null;
 
     return (
         <Box sx={{
@@ -34,7 +37,7 @@ const ChatMessage = ({ msg, currentUserEmail, onReply }) => {
                 position: "relative",
                 animation: "fadeIn 0.3s ease-in-out"
             }}>
-                {msg.reply_to && (
+                {replyData && replyData.content && (
                     <Typography variant="body2" sx={{
                         bgcolor: "#ffffff40",
                         p: 0.5,
@@ -42,7 +45,7 @@ const ChatMessage = ({ msg, currentUserEmail, onReply }) => {
                         mb: 1,
                         fontStyle: "italic"
                     }}>
-                        Replying to: {truncateText(msg.reply_to.content)}
+                        Replying to: {truncateText(replyData.content)}
                     </Typography>
                 )}
                 <Typography variant="body1">{msg.content}</Typography>
