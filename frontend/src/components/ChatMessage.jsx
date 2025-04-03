@@ -28,8 +28,8 @@ const ChatMessage = ({ msg, currentUserEmail, onReply }) => {
                 @{msg.sender_email.split("@")[0]}
             </Typography>
             <Box sx={{
-                bgcolor: isOwnMessage ? "#007AFF" : "#E5E5EA",
-                color: isOwnMessage ? "white" : "black",
+                bgcolor: isOwnMessage ? "#640000" : "#000064", // Lime green for sender, pale green for receiver
+                color: isOwnMessage ? "white" : "white",
                 p: 1.5,
                 borderRadius: isOwnMessage ? "20px 20px 4px 20px" : "20px 20px 20px 4px",
                 wordWrap: "break-word",
@@ -58,10 +58,10 @@ const ChatMessage = ({ msg, currentUserEmail, onReply }) => {
                 }}>
                     {dayjs(msg.created_at).format("hh:mm A")}
                 </Typography>
-                <IconButton size="small" sx={{ position: "absolute", top: 5, right: -30 }} onClick={() => onReply(msg)}>
+                <IconButton size="small" sx={{ position: "absolute", top: 5, right: -30, color: "#006400" }} onClick={() => onReply(msg)}>
                     <Reply fontSize="small" />
                 </IconButton>
-                <IconButton size="small" sx={{ position: "absolute", bottom: 5, right: -30 }} onClick={copyToClipboard}>
+                <IconButton size="small" sx={{ position: "absolute", bottom: 5, right: -30, color: "#006400" }} onClick={copyToClipboard}>
                     <ContentCopy fontSize="small" />
                 </IconButton>
             </Box>
